@@ -2,15 +2,22 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <signal.h>
+#include <sys/stat.h>
 
 #define MEMORY_MAX ( 1 << 16 )
-#define START_ADDRESS 0x3000
+#define START_ADDRESS 0x3000 // Lower and upper bound given to programs
+#define END_ADDRESS 0xFDFF
 
 __uint16_t memory[MEMORY_MAX];
 __uint16_t registers[8]; // The 8 general purpose registers
 
 __uint16_t PC; // Program Counter Register ( Contains Which Memory address to fetch next )
 __uint16_t PSR; // Processor status register
+
+struct termios oldt,newt; // To handle terminal settings
 
 enum GENERAL_REGISTERS{
     R0 = 0,
@@ -51,11 +58,71 @@ enum TRAPS{
     TRAP_HALT
 };
 
+enum SPECIAL_MEMORY_REGISTERS{ //These registers are klocated in the memory and are not supposed to be accesible 
+    KBSR = 0xFE00, //To see status if key pressed
+    KBDR = 0xFE02 // To access value if key pressed
+};
+
+// SYS CALL and file handling fucntion
+__uint8_t check_key()
+{
+    // Creates a file descriptor set and adds keyboard(input) in it , clearing everything else
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(STDIN_FILENO,&readfds);
+
+    // Creating a timer and set it value to zero
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+
+    //Select returns immendiately after checking if there is any unread data in STDIN file
+    return select(1,&readfds,NULL,NULL,&timeout);
+}
+int get_file_size(char * file)
+{
+    struct stat file_stat;
+    if(stat(file,&file_stat) == 0) return file_stat.st_size;
+    return 0;
+}
+
+
+/* Accessing memory */
+__uint16_t mem_write(__uint16_t address, __uint16_t value)
+{
+    if(address == KBSR || address == KBDR) // Can not be written to
+    {
+        return 0;
+    }
+    memory[address] = value;
+    return 1;
+}
+__uint16_t mem_read(__uint16_t address)
+{
+    if(address == KBSR)
+    {
+        if(check_key()) // If a key was pressed
+        {
+            memory[KBSR] = (1 << 15);
+            memory[KBDR] = getchar();
+        }else{
+            memory[KBSR] = 0;
+        }
+    }
+    return memory[address];
+}
+
 // Op code helper functions
+__uint16_t swap16(__uint16_t num)
+{
+    __uint16_t first = num << 8;
+    num = num >> 8;
+    return first | num;
+}
 __uint16_t sext(__uint16_t num,__uint8_t sig_dig)
 {
     __uint16_t mask = (0xFFFF << sig_dig);
-    if( !((1 << sig_dig) & num) ) mask = 0;
+    if( !((1 << (sig_dig -1)) & num) ) mask = 0;
     return num | mask;
 }
 __uint16_t setcc(int16_t number)
@@ -136,7 +203,7 @@ void op_ld(__uint16_t instr)
     __uint8_t dr = (instr & 0b111000000000) >> 9;
     __uint16_t offset = instr & 0b111111111;
 
-    registers[dr] = memory[PC + sext(offset,9)];
+    registers[dr] = mem_read(PC + sext(offset,9));
     setcc(registers[dr]);
 }
 
@@ -145,8 +212,8 @@ void op_ldi(__uint16_t instr)
     __uint8_t dr = (instr & 0b111000000000) >> 9;
     __uint16_t offset = instr & 0b111111111;
 
-    __uint16_t target = memory[PC + sext(offset,9)];
-    registers[dr] = memory[target];
+    __uint16_t target = mem_read(PC + sext(offset,9));
+    registers[dr] = mem_read(target);
 
     setcc(registers[dr]);
 }
@@ -157,7 +224,7 @@ void op_ldr(__uint16_t instr)
     __uint8_t sr = (instr & 0b111000000) >> 6;
     __uint8_t offset = (instr & 0b111111);
 
-    registers[dr] = memory[registers[sr] + sext(offset,6)];
+    registers[dr] =mem_read(registers[sr] + sext(offset,6));
     setcc(registers[dr]);
 }
 
@@ -183,7 +250,7 @@ void op_st(__uint16_t instr)
     __uint8_t sr = (instr & 0b111000000000) >> 9;
     __uint16_t offset = instr & 0b111111111;
 
-    memory[PC + sext(offset,9)] = registers[sr];
+    mem_write(PC + sext(offset,9),registers[sr]);
 }
 
 void op_sti(__uint16_t instr)
@@ -191,9 +258,9 @@ void op_sti(__uint16_t instr)
     __uint8_t sr = (instr & 0b111000000000) >> 9;
     __uint16_t offset = instr & 0b111111111;
 
-    __uint16_t target = memory[PC + sext(offset,9)];
+    __uint16_t target = mem_read(PC + sext(offset,9));
 
-    memory[target] = registers[sr];
+    mem_write(target,registers[sr]);
 }
 
 void op_str(__uint16_t instr)
@@ -202,8 +269,7 @@ void op_str(__uint16_t instr)
     __uint8_t baser = (instr & 0b111000000) >> 6;
     __uint8_t offset = (instr & 0b111111);
 
-    memory[registers[baser] + sext(offset,6)] = registers[sr];
-
+    mem_write(registers[baser] + sext(offset,6),registers[sr]);
 }
 
 // Handling Trap routines
@@ -228,7 +294,7 @@ void trap_puts()
 {
     __uint16_t c = registers[R0];
 
-    while(memory[c])
+    while(mem_read(c))
     {
         putc((char)memory[c],stdout);
         c++;
@@ -256,11 +322,11 @@ void trap_putsp()
     __uint8_t till_16c; // The 8-15 bit of the memory location
     while(1)
     {
-        till_8c = memory[c] & 0b11111111;
+        till_8c = mem_read(c) & 0b11111111;
         if(!till_8c) break;
         putc(till_8c,stdout);
 
-        till_16c = memory[c] >> 8;
+        till_16c = mem_read(c) >> 8;
         if(!till_16c) break;
         putc(till_16c,stdout);
 
@@ -297,47 +363,60 @@ __uint8_t op_trap(__uint16_t instr){
     }
     return 0;
 }
-/* Necessary Functions */
 
-int load_program(int argc, char * argv[]) // Loads the program returns the size of the program
+/* SETUP and LOAD Functions */
+int load_program(int argc, char * argv[]) // Loads the program returns the start address
 {
     if(argc != 2)
     {
         printf("Usage: ./main [PATH OF PROGRAM]\n");
         return 0;
     }
-    int size = 0;
+
     FILE *fptr;
-
     fptr = fopen(argv[1],"rb");
-
+    // Check if file exits
     if(fptr == NULL){
         printf("No such file found.\n");
         return 0;
     }
+    // Check if its empty
+    long size = get_file_size(argv[1]);
+    if(size == 0)
+    {
+        printf("FILE is empty.");
+        return 0 ;
+    }
 
-    int address = START_ADDRESS;
-    // Shifting to acheive big endian 
+    //Read first instr which is the location to store thr file
     __uint16_t temp;
+    fread(&temp,sizeof(__uint16_t),1,fptr);
+    __uint16_t start_address = swap16(temp);
+    __uint16_t address = start_address;
+    if(address < START_ADDRESS || address > END_ADDRESS)
+    {
+        printf("Invalid start address.\n");
+        return 0;
+    }
+    if(END_ADDRESS - address < size){
+        printf("Program too big. (Size:%d ,Size Allowed: %d)\n",size,END_ADDRESS - START_ADDRESS);
+        return 0;
+    }
+
+    // Shifting to acheive big endian 
     while(fread(&temp,sizeof(__uint16_t),1,fptr))
     {
-        __uint16_t first = temp << 8;
-        temp = temp >> 8;
-        memory[address++] = first | temp;
-        size++;
-
+        memory[address++] = swap16(temp);
     }
 
     fclose(fptr);
 
-    return size;
+    return start_address;
 }
-
-int main(int argc, char * argv[])
+void setup_noncanon_mode()
 {
-
     // SETUP -- to get input directly and not make it echo in terminal
-    struct termios oldt,newt;
+    
     tcgetattr(STDIN_FILENO,&oldt);
     newt = oldt;
 
@@ -345,22 +424,35 @@ int main(int argc, char * argv[])
 
     tcsetattr(STDIN_FILENO,TCSANOW,&newt);
 
-    // Program is LOADED
-    u_int16_t program_size = load_program(argc,argv);
-    // Load the program into memory 
-    if(!program_size)
-    {
-        printf("Something went wrong.\n");
-        exit(1);
-    }
-    printf("Instructions loaded in memory: %u\n",program_size);
+}
+void disable_noncanon_mode()
+{
+    tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
+}
+void handle_termination(int signal)
+{
+    disable_noncanon_mode();
+    printf("\n");
+    exit(signal);
+}
 
 
+// MAIN
+int main(int argc, char * argv[])
+{
 
-    PSR = 1 << 1; // Initially set to zero condition code and supervisor mode 
-    PC = START_ADDRESS; // Starting position of memory for the user programs
+    signal(SIGINT,handle_termination); // If ctrl c is pressed , restore old terminal
+
+    setup_noncanon_mode();
 
     __uint16_t running = 1;
+
+    // Program is LOADED
+    u_int16_t start = load_program(argc,argv);
+    if(start == 0) running = 0;
+
+    PSR = 1 << 1; // Initially set to zero condition code and supervisor mode 
+    PC = start; // Starting position of memory for the user programs
 
     while(running)
     {
@@ -369,7 +461,6 @@ int main(int argc, char * argv[])
 
         PC++; // Move on to the next PC
 
-        printf("opcode ran: %u\n",opcode);
         switch (opcode)
         {
             case OP_BR:
@@ -397,7 +488,8 @@ int main(int argc, char * argv[])
                 op_str(instr);
                 break;
             case OP_RTI:
-                /* code */
+                running = 0;
+                printf("BAD OPCODE\n");
                 break;
             case OP_NOT:
                 op_not(instr);
@@ -420,14 +512,14 @@ int main(int argc, char * argv[])
                 break;
 
             default:
+                running = 0;
+                printf("BAD OPCODE\n");
                 break;
         }
-        printf("CC set to: %d\n",PSR);
     }
-    printf("REG 0 = %d REG 1=%d REG 2=%d REG 3 = %d memory = %d memoory = %d \n",registers[0], registers[1], registers[2],registers[3], memory[0x300A],memory[0x300B]);
 
     // Restore the older settings
-    tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
+    disable_noncanon_mode();
 
     return  0;
 }
