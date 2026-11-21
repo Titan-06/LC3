@@ -131,7 +131,7 @@ int first_pass(char * filename)
                     clear_list(&label_list);
                     if(token_no > 999)
                     {
-                        char * param = strtok(NULL,"");
+                        char * param = strtok(NULL,"\n");
                         int increm = is_directive(token,param); // It returns how much to incremenet the PC based on the directive and parameter
                         if(increm == 0) return 0;
                         PC += increm;
@@ -174,11 +174,11 @@ int second_pass(char * filename)
         //Sanitising comments
         char *cmmnt_ptr = strchr(line,';');
         if(cmmnt_ptr) *cmmnt_ptr = '\0';
-
+        
         // Go Over Every Token 
         char *token = strtok(line," \n");
         
-
+        
         // This loops run until a valid token appears, then it stores all the labels that it encountered with the PC (Already incremented)
         // Increments the PC according to the type of token (Directive or instruiction)
         while(token != NULL){
@@ -207,6 +207,7 @@ int second_pass(char * filename)
                     return 0;
                 }
                 
+                
                 int token_no = valid_token(token);
                 if(token_no == -1){ // Skip all the Labels
                     token = strtok(NULL," \n");
@@ -214,13 +215,8 @@ int second_pass(char * filename)
                 }
 
                 // Pc incremented accordingly
-                if(token_no > 999)
+                if(token_no < 999)
                 {
-                    char * param = strtok(NULL,"");
-                    int increm = is_directive(token,param); // It returns how much to incremenet the PC based on the directive and parameter
-                    if(increm == 0) return 0;
-                    PC += increm;
-                }else{
                     PC += 1;
                 }
 
@@ -241,14 +237,32 @@ int second_pass(char * filename)
                         
                     token = strtok(NULL," ,\n"); // make sure to get the comma ones
                 }while(token != NULL);
-                if(!handle_conversion(token_no,instr_tokens,&instr))
+                // Handling the final conversion
+                if(token_no > 999)
                 {
-                    clear_list(&instr_tokens);
-                    printf("ERROR: Invalid Syntax at line %d\n",line_no);
-                    return 0;
+                    short_int_list to_fill ={0};
+                    int increment = handle_directive(token_no,instr_tokens,&to_fill);
+                    if(!increment){
+                        clear_list(&instr_tokens);
+                        printf("ERROR: Directive is not correct at line %d\n",line_no);
+                        return 0;
+                    }
+                    PC += increment;
+                    for(int j = 0; j < to_fill.size; j++)
+                    {
+                        add_instr_buffer(to_fill.elements[j],&buffer);
+                    }
+                }else{
+                    if(!handle_conversion(token_no,instr_tokens,&instr))
+                    {
+                        clear_list(&instr_tokens);
+                        printf("ERROR: Invalid Syntax at line %d\n",line_no);
+                        return 0;
+                    }
+                    add_instr_buffer(instr,&buffer);
                 }
+                
                 clear_list(&instr_tokens);
-                add_instr_buffer(instr,&buffer);
                 break; // Break out since line is over
             }
         }

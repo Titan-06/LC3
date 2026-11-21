@@ -85,7 +85,7 @@ int is_directive(char * token, char * param)
         int allot = param[0] - '0';
         return allot;
     }else if(strcmp(token,".STRINGZ")==0){
-        return strlen(param) - 3 + 1; // -3 to remove the "" and \n, +1 for null terminator
+        return strlen(param) - 2 + 1; // -3 to remove the "" and \n, +1 for null terminator
     }
     return 0;
 }

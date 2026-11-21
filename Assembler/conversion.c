@@ -16,7 +16,7 @@ int is_regsiter(char *regis) // -1 if not, othwerise return register(0->7)
 int is_num(char *num) // Binary, Dec and Hex allowed, returned as unsigned 16 bit number
 {
     char *endptr;
-    uint16_t converted;
+    int converted;
     if(num[0] == 'X' || num[0] == 'x')
     {
         converted = strtol(&num[1],&endptr,16);
@@ -26,10 +26,10 @@ int is_num(char *num) // Binary, Dec and Hex allowed, returned as unsigned 16 bi
     }else if(num[0] == '#'){
         converted = strtol(&num[1],&endptr,10);
     }else{
-        return -1;
+        converted = strtol(&num[0],&endptr,10); // By Default 
     }
     if(*endptr != '\0') return -1;
-    return converted;
+    return (uint16_t)converted;
 }
 int trim_bits(uint16_t num, uint16_t bit) // Returns 0 if the number is not under bit limit
 {
@@ -130,4 +130,39 @@ int handle_conversion(int token_code,list tokens,uint16_t * return_conversion)
     if(!instr) return 0;
     *return_conversion = instr;
     return 1;
+}
+
+int handle_directive(int token_code,list tokens,short_int_list * to_fill){
+    if(tokens.size != 2) return 0;
+    switch (token_code)
+    {
+    case STRINGZ:
+        int i;
+        for(i = 0;tokens.elements[1][i] != '\0'; i++); // is the whole length of the token with null terminator
+        if(i < 3) return 0;
+        if(tokens.elements[1][0] == '"' && tokens.elements[1][i-1] == '"')
+        {
+            for(int j = 1;j < (i-1); j++)
+            {
+                add_short_int_list(tokens.elements[1][j],to_fill);
+            }
+            add_short_int_list(0,to_fill);
+            return i - 1; // Also include the null term so +1
+        }
+    case BLKW:
+        int empty_addr = is_num(tokens.elements[1]);
+        if(empty_addr == -1) return 0;
+
+        for(int j = 0 ; j < empty_addr; j++) add_short_int_list(0,to_fill);
+
+        return empty_addr;
+    case FILL:
+        int num = is_num(tokens.elements[1]);
+        if(num == -1) return 0;
+        
+        add_short_int_list(num,to_fill);
+        return 1;
+    default:
+        return 0;
+    }
 }
