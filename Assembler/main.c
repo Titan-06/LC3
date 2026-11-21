@@ -156,13 +156,13 @@ int second_pass(char * filename)
     
     short_int_list buffer = {0};
     list instr_tokens = {0};
-    char line[64];
+    char line[256];
     int orig_set = 0; // For .ORIG
     int ended = 0; // For .END
     unsigned int PC;
     int line_no = 0;
 
-    while(fgets(line,64,file_to_read) != NULL){
+    while(fgets(line,256,file_to_read) != NULL){
         if(ended) break; // If .END is read
         line_no++; // Every Line of the file is counted for the error message(if any)
 
@@ -234,8 +234,12 @@ int second_pass(char * filename)
                     }else{
                         add_list_element(token,&instr_tokens);
                     }
-                        
-                    token = strtok(NULL," ,\n"); // make sure to get the comma ones
+                    if(token_no > 999){
+                        token = strtok(NULL,"\n"); // Just get the one after the directive
+                    }else{
+                        token = strtok(NULL," ,\n"); // make sure to get the comma ones
+                    }
+                    
                 }while(token != NULL);
                 // Handling the final conversion
                 if(token_no > 999)

@@ -101,6 +101,72 @@ uint16_t direct_traps(int token_code, list tokens)
     uint16_t vector = trim_bits(token_code,8);
     return (0xF << 12) | vector;
 }
+uint16_t jmp_jsrr(int token_code, list tokens)
+{
+    if(tokens.size != 2) return 0;
+
+    int base = is_regsiter(tokens.elements[1]);
+    if(base == -1) return 0;
+
+    return (token_code << 12) | (base << 6);
+}
+uint16_t jsr_ret(int token_code, list tokens)
+{
+    if(token_code == OP_RET) // RET is JMP R7
+    {
+        if(tokens.size != 1) return 0;
+        return (token_code << 12) | (7 << 6);
+    }
+
+    // JSR
+    if(tokens.size != 2) return 0;
+    int pcoffset = is_num(tokens.elements[1]);
+    if(pcoffset == -1) return 0;
+
+    return (token_code << 12) | (1 << 11) | trim_bits(pcoffset,11);
+}
+uint16_t pc_offset9(int token_code, list tokens) // LD, LDI, LEA, ST, STI
+{
+    if(tokens.size != 3) return 0;
+
+    int r1 = is_regsiter(tokens.elements[1]);
+    if(r1 == -1) return 0;
+
+    int pcoffset = is_num(tokens.elements[2]);
+    if(pcoffset == -1) return 0;
+
+    return (token_code << 12) | (r1 << 9) | trim_bits(pcoffset,9);
+}
+uint16_t ldr_str_not(int token_code, list tokens)
+{
+    if(token_code == OP_NOT)
+    {
+        if(tokens.size != 3) return 0;
+
+        int dr = is_regsiter(tokens.elements[1]);
+        int sr = is_regsiter(tokens.elements[2]);
+        if(dr == -1 || sr == -1) return 0;
+
+        return (token_code << 12) | (dr << 9) | (sr << 6) | 0x3F;
+    }
+
+    // LDR, STR
+    if(tokens.size != 4) return 0;
+
+    int r1 = is_regsiter(tokens.elements[1]);
+    int base = is_regsiter(tokens.elements[2]);
+    if(r1 == -1 || base == -1) return 0;
+
+    int offset = is_num(tokens.elements[3]);
+    if(offset == -1) return 0;
+
+    return (token_code << 12) | (r1 << 9) | (base << 6) | trim_bits(offset,6);
+}
+uint16_t rti(int token_code, list tokens)
+{
+    if(tokens.size != 1) return 0;
+    return token_code << 12;
+}
 
 // Main Handle Conversion Function
 int handle_conversion(int token_code,list tokens,uint16_t * return_conversion)
@@ -125,6 +191,28 @@ int handle_conversion(int token_code,list tokens,uint16_t * return_conversion)
         case TRAP_PUTS:
         case TRAP_PUTSP:
             instr = direct_traps(token_code,tokens);
+            break;
+                case OP_RET:
+        case OP_JSR:
+            if(strcmp(tokens.elements[0],"JMP") == 0 || strcmp(tokens.elements[0],"JSRR") == 0)
+                instr = jmp_jsrr(token_code,tokens);
+            else
+                instr = jsr_ret(token_code,tokens);
+            break;
+        case OP_LD:
+        case OP_LDI:
+        case OP_LEA:
+        case OP_ST:
+        case OP_STI:
+            instr = pc_offset9(token_code,tokens);
+            break;
+        case OP_LDR:
+        case OP_STR:
+        case OP_NOT:
+            instr = ldr_str_not(token_code,tokens);
+            break;
+        case OP_RTI:
+            instr = rti(token_code,tokens);
             break;
     }
     if(!instr) return 0;
