@@ -47,20 +47,20 @@ void clear_list(list * input_list)
 
 // Handle the buffer
 
-int add_short_int_list(uint16_t instr,short_int_list * buffr_addr)
+int add_short_int_list(uint16_t num,short_int_list * list_addr)
 {
-    uint16_t * temp = realloc(buffr_addr->elements,(buffr_addr->size + 1) * sizeof(__uint16_t));
+    uint16_t * temp = realloc(list_addr->elements,(list_addr->size + 1) * sizeof(__uint16_t));
     if(temp == NULL) return 0;
 
-    buffr_addr->elements = temp;
-    buffr_addr->elements[buffr_addr->size] = instr;
-    buffr_addr->size += 1;
+    list_addr->elements = temp;
+    list_addr->elements[list_addr->size] = num;
+    list_addr->size += 1;
     return 1;
 
 }
-void clear_short_int_list(short_int_list * buffr_addr)
+void clear_short_int_list(short_int_list * list_addr)
 {
-    free(buffr_addr->elements);
+    free(list_addr->elements);
 }
 
 /* Helper Functions */
@@ -75,19 +75,6 @@ int valid_token(char * token){
         } 
     }
     return -1;
-}
-
-// Hex to Decimal Helper function (ONLY FOR 4 DIGIT HEX with leading char x)
-int hexToDec(char * hex)
-{
-    // Prepare a hex string
-    char hexstr[7];
-    hexstr[0] = '0';
-    strcpy(&hexstr[1],hex);
-
-    long dec = strtol(hexstr,NULL,16);
-    
-    return (int)dec;
 }
 
 // To check if its a assembler directive and return How much PC should be incremeneted

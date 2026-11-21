@@ -1,4 +1,5 @@
 #include "helpers.h"
+#include "conversion.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +47,32 @@ void free_symbol_table()
     free(SYMBOL_TABLE.entries);
 }
 
+// Writing the binary to the file 
+void add_instr_buffer(uint16_t instr, short_int_list * buffer)
+{
+    instr = (instr << 8) | (instr >> 8);
+    add_short_int_list(instr,buffer);
+}
+void write_binary(char *filename,short_int_list buffer)
+{
+    char *name = strtok(filename,".");
+    if(strlen(name) > 46){
+        printf("File Name too big. (Make sure its Under 46 chars)\n");
+        return;
+    }
+    char objfile[50];
+    snprintf(objfile,sizeof(objfile),"%s%s",name,".obj");
+    FILE * objptr = fopen(objfile,"wb");
+    if(!objptr){
+        printf("Something went wrong. Couldn't open file.\n");
+        return;
+    }
+    fwrite(buffer.elements,sizeof(uint16_t),buffer.size,objptr);
+    printf("Obj File Created: %s\n",objfile);
+    fclose(objptr);
+
+}
+
 /* Functions related to the First/Second Pass */
 
 // For First Pass, All The labels are loaded in The Symbol Table with their associated address
@@ -73,7 +100,7 @@ int first_pass(char * filename)
         if(cmmnt_ptr) *cmmnt_ptr = '\0';
 
         // Go Over Every Token 
-        char *token = strtok(line," ");
+        char *token = strtok(line," \n");
 
         // This loops run until a valid token appears, then it stores all the labels that it encountered with the PC (Already incremented)
         // Increments the PC according to the type of token (Directive or instruiction)
@@ -81,8 +108,9 @@ int first_pass(char * filename)
             // When ORIG is encountered set the PC
             if(strcmp(token,".ORIG") == 0)
             {
-                char * PC_start = strtok(NULL," "); // Get the next Token
-                PC = hexToDec(PC_start);
+                char * PC_start = strtok(NULL," \n"); // Get the next Token
+                PC = is_num(PC_start);
+                if(PC == -1) return 0;
                 break;
             }else {
                 int token_no = valid_token(token);
@@ -106,7 +134,7 @@ int first_pass(char * filename)
                 }
             }
 
-            token = strtok(NULL," ");
+            token = strtok(NULL," \n");
         }
     }
     fclose(fptr);
@@ -119,12 +147,13 @@ int second_pass(char * filename)
     
     short_int_list buffer;
     char line[64];
-    int orig_set = 0;
+    int orig_set = 0; // For .ORIG
+    int ended = 0; // For .END
     unsigned int PC;
     int line_no = 0;
 
     while(fgets(line,64,file_to_read) != NULL){
-
+        if(ended) break; // If .END is read
         line_no++; // Every Line of the file is counted for the error message(if any)
 
         // For an empty line
@@ -137,12 +166,13 @@ int second_pass(char * filename)
         if(cmmnt_ptr) *cmmnt_ptr = '\0';
 
         // Go Over Every Token 
-        char *token = strtok(line," ");
+        char *token = strtok(line," \n");
         list instr_tokens;
 
         // This loops run until a valid token appears, then it stores all the labels that it encountered with the PC (Already incremented)
         // Increments the PC according to the type of token (Directive or instruiction)
         while(token != NULL){
+            if(strcmp(token,".END") == 0) ended = 1;
             // When ORIG is encountered set the PC
             if(strcmp(token,".ORIG") == 0)
             {
@@ -150,8 +180,10 @@ int second_pass(char * filename)
                     printf("ERROR: Line %d, .ORIG repeated twice\n",line_no);
                     return 0;
                 }
-                char * PC_start = strtok(NULL," "); // Get the next Token
-                PC = hexToDec(PC_start);
+                char * PC_start = strtok(NULL," \n"); // Get the next Token
+                PC = is_num(PC_start);
+                if(PC == -1) return 0;
+                add_instr_buffer(PC,&buffer);
                 orig_set = 1;
                 break;
             }else {
@@ -166,18 +198,34 @@ int second_pass(char * filename)
                     token = strtok(NULL," ");
                     continue;
                 }
-                
+                uint16_t instr;
                 // If a valid token is encountered, take all tokens including and after it
                 do{
                     add_list_element(token,&instr_tokens);
-                    token = strtok(NULL," ,"); // make sure to get the comma ones
+                    token = strtok(NULL," ,\n"); // make sure to get the comma ones
                 }while(token != NULL);
+                if(!handle_conversion(token_no,instr_tokens,&instr))
+                {
+                    printf("ERROR: at line %d\n",line_no);
+                    return 0;
+                }
+                add_instr_buffer(instr,&buffer);
                 break; // Break out since line is over
             }
         }
     }
-    fclose(file_to_read);
-    return 1;
+    if(!ended){
+        printf("ERROR: NO .END ENCOUNTERED.\n");
+        clear_short_int_list(&buffer);
+        fclose(file_to_read);
+        return 0;
+    }else{
+        write_binary(filename,buffer);
+        clear_short_int_list(&buffer);
+        fclose(file_to_read);
+        return 1;
+    }
+    
 }
 
 /* INIT functions */

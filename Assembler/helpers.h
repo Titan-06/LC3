@@ -52,11 +52,10 @@ typedef struct short_int_list{
 int add_list_element(char * element, list * input_list);
 void clear_list(list * input_list);
 
-int add_short_int_list(uint16_t instr,short_int_list * buffr_addr);
-void clear_short_int_list(short_int_list * buffr_addr);
+int add_short_int_list(uint16_t num,short_int_list * list_addr);
+void clear_short_int_list(short_int_list * list_addr);
 
 int valid_token(char * token);
-int hexToDec(char * hex);
 int is_directive(char * token, char * param);
 
 #endif
