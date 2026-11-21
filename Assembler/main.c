@@ -37,7 +37,17 @@ int add_symbol_entry(char * symbol, uint16_t loc){ // 0 if it fails
     SYMBOL_TABLE.entries[index].PC_LOC = loc;
     return 1;
 }
-
+int is_symbol(char * symbol) // Returns the index for the Symbol table
+{
+    for(int i = 0 ; i < SYMBOL_TABLE.size; i++)
+    {
+        if(strcmp(SYMBOL_TABLE.entries[i].symbol,symbol)==0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 void free_symbol_table()
 {
     for(int i = 0 ; i < SYMBOL_TABLE.size; i++)
@@ -133,7 +143,6 @@ int first_pass(char * filename)
                     add_list_element(token,&label_list);
                 }
             }
-
             token = strtok(NULL," \n");
         }
     }
@@ -145,7 +154,8 @@ int second_pass(char * filename)
 {
     FILE * file_to_read = fopen(filename,"r");
     
-    short_int_list buffer;
+    short_int_list buffer = {0};
+    list instr_tokens = {0};
     char line[64];
     int orig_set = 0; // For .ORIG
     int ended = 0; // For .END
@@ -167,12 +177,15 @@ int second_pass(char * filename)
 
         // Go Over Every Token 
         char *token = strtok(line," \n");
-        list instr_tokens;
+        
 
         // This loops run until a valid token appears, then it stores all the labels that it encountered with the PC (Already incremented)
         // Increments the PC according to the type of token (Directive or instruiction)
         while(token != NULL){
-            if(strcmp(token,".END") == 0) ended = 1;
+            if(strcmp(token,".END") == 0){
+                ended = 1;
+                break;
+            }
             // When ORIG is encountered set the PC
             if(strcmp(token,".ORIG") == 0)
             {
@@ -187,6 +200,7 @@ int second_pass(char * filename)
                 orig_set = 1;
                 break;
             }else {
+                
                 if(!orig_set)
                 {
                     printf("ERROR: Instruction or Label before .ORIG\n");
@@ -195,25 +209,52 @@ int second_pass(char * filename)
                 
                 int token_no = valid_token(token);
                 if(token_no == -1){ // Skip all the Labels
-                    token = strtok(NULL," ");
+                    token = strtok(NULL," \n");
                     continue;
                 }
+
+                // Pc incremented accordingly
+                if(token_no > 999)
+                {
+                    char * param = strtok(NULL,"");
+                    int increm = is_directive(token,param); // It returns how much to incremenet the PC based on the directive and parameter
+                    if(increm == 0) return 0;
+                    PC += increm;
+                }else{
+                    PC += 1;
+                }
+
                 uint16_t instr;
                 // If a valid token is encountered, take all tokens including and after it
                 do{
-                    add_list_element(token,&instr_tokens);
+                    
+                    int symbol = is_symbol(token);
+                    
+                    if(symbol != -1)
+                    {
+                        char pc_loc[10]; // Since max value for a 16 bit is 65,535
+                        snprintf(pc_loc,sizeof(pc_loc),"#%d",SYMBOL_TABLE.entries[symbol].PC_LOC - PC); // Label is ccounted realtive to incremneted PC
+                        add_list_element(pc_loc,&instr_tokens);
+                    }else{
+                        add_list_element(token,&instr_tokens);
+                    }
+                        
                     token = strtok(NULL," ,\n"); // make sure to get the comma ones
                 }while(token != NULL);
                 if(!handle_conversion(token_no,instr_tokens,&instr))
                 {
-                    printf("ERROR: at line %d\n",line_no);
+                    clear_list(&instr_tokens);
+                    printf("ERROR: Invalid Syntax at line %d\n",line_no);
                     return 0;
                 }
+                clear_list(&instr_tokens);
                 add_instr_buffer(instr,&buffer);
                 break; // Break out since line is over
             }
         }
     }
+
+    // This is if .END is not written at the end
     if(!ended){
         printf("ERROR: NO .END ENCOUNTERED.\n");
         clear_short_int_list(&buffer);
@@ -244,11 +285,11 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-    /*
+    
     if(!first_pass(argv[1])){ // Load the Symbol Table
         printf("First pass didnt work\n");
         return 1;
     }
-    */
+    
     second_pass(argv[1]);
 }

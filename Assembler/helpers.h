@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define VALID_TOKENS 30 // .ORIG and .END are not counted
+#define VALID_TOKENS 33 // .ORIG and .END are not counted
 
 // ENUMS
 enum OPCODES{ // 15 OPCODES in LC 3 and One reserved code

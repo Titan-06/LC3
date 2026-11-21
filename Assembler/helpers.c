@@ -6,16 +6,16 @@
 
 // All the Opcodes/instructions decalration
 char * valid_tokens[VALID_TOKENS] = {"ADD","AND","JMP","JSR","JSRR","LD"
-                                    ,"LDI","LDR","LEA","NOT","RET","ST"
-                                    ,"STI","STR","GETC","OUT","PUTS","IN","PUTSP","HALT"
+                                    ,"LDI","LDR","LEA","NOT","RET","RTI","ST"
+                                    ,"STI","STR","TRAP","GETC","OUT","PUTS","IN","PUTSP","HALT"
                                     ,".BLKW",".FILL",".STRINGZ"
-                                    ,"BR","BRn","BRp","BRz","BRzp","BRnz","BRnzp"};
+                                    ,"BR","BRn","BRp","BRz","BRzp","BRnz","BRnp","BRnzp"};
 
 uint16_t token_code[VALID_TOKENS] = {OP_ADD,OP_AND,OP_RET,OP_JSR,OP_JSR,OP_LD
-                                    ,OP_LDI,OP_LDR,OP_LEA,OP_NOT,OP_RET,OP_ST
-                                    ,OP_STI,OP_STR,TRAP_GETC,TRAP_OUT,TRAP_PUTS,TRAP_IN,TRAP_PUTSP,TRAP_HALT
+                                    ,OP_LDI,OP_LDR,OP_LEA,OP_NOT,OP_RET,OP_RTI,OP_ST
+                                    ,OP_STI,OP_STR,OP_TRAP,TRAP_GETC,TRAP_OUT,TRAP_PUTS,TRAP_IN,TRAP_PUTSP,TRAP_HALT
                                     ,BLKW,FILL,STRINGZ
-                                    ,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR};
+                                    ,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR,OP_BR};
 
 /* Functions to handle the Dyanmic List */
 
@@ -37,11 +37,11 @@ int add_list_element(char * element, list * input_list){
 }
 void clear_list(list * input_list)
 {
-    input_list->size = 0;
     for(int i = 0; i < input_list->size; i++){
         free(input_list->elements[i]);
     }
     free(input_list->elements);
+    input_list->size = 0;
     input_list->elements = NULL;
 }
 
@@ -70,7 +70,6 @@ int valid_token(char * token){
     for(int i = 0; i < VALID_TOKENS; i++)
     {
         if(strcmp(token,valid_tokens[i]) == 0){
-            if(token[0] == '.') return 2;
             return token_code[i];
         } 
     }
