@@ -117,7 +117,7 @@ int second_pass(char * filename)
 {
     FILE * file_to_read = fopen(filename,"r");
     
-    struct buffer buff;
+    short_int_list buffer;
     char line[64];
     int orig_set = 0;
     unsigned int PC;
@@ -172,10 +172,6 @@ int second_pass(char * filename)
                     add_list_element(token,&instr_tokens);
                     token = strtok(NULL," ,"); // make sure to get the comma ones
                 }while(token != NULL);
-                for(int i = 0 ; i < instr_tokens.size; i++)
-                {
-                    printf("%s\n",instr_tokens.elements[i]);
-                }
                 break; // Break out since line is over
             }
         }

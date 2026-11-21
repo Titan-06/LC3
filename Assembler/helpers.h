@@ -43,17 +43,17 @@ typedef struct list{
     char ** elements;
     unsigned int size;
 }list;
-struct buffer{
+typedef struct short_int_list{
     uint16_t * elements;
     unsigned int size;
-};
+}short_int_list;
 
 // Helper Function Prototypes 
 int add_list_element(char * element, list * input_list);
 void clear_list(list * input_list);
 
-int add_buffr_instr(uint16_t instr, struct buffer * buffr_addr);
-void clear_buffer(struct buffer * buffr_addr);
+int add_short_int_list(uint16_t instr,short_int_list * buffr_addr);
+void clear_short_int_list(short_int_list * buffr_addr);
 
 int valid_token(char * token);
 int hexToDec(char * hex);

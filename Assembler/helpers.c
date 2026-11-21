@@ -47,7 +47,7 @@ void clear_list(list * input_list)
 
 // Handle the buffer
 
-int add_buffr_instr(uint16_t instr, struct buffer * buffr_addr)
+int add_short_int_list(uint16_t instr,short_int_list * buffr_addr)
 {
     uint16_t * temp = realloc(buffr_addr->elements,(buffr_addr->size + 1) * sizeof(__uint16_t));
     if(temp == NULL) return 0;
@@ -58,7 +58,7 @@ int add_buffr_instr(uint16_t instr, struct buffer * buffr_addr)
     return 1;
 
 }
-void clear_buffer(struct buffer * buffr_addr)
+void clear_short_int_list(short_int_list * buffr_addr)
 {
     free(buffr_addr->elements);
 }
