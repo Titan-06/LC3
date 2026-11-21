@@ -86,6 +86,21 @@ uint16_t br(int token_code, list tokens)
     uint16_t instr = (condition_flag << 9) | pcoffset;
     return instr;
 }
+uint16_t indirect_traps(int token_code, list tokens)
+{
+    if(tokens.size != 2) return 0;
+    int vector = is_num(tokens.elements[1]);
+    if(vector == -1) return 0;
+
+    return (0xF << 12) | trim_bits(vector,8);
+}
+uint16_t direct_traps(int token_code, list tokens)
+{
+    if(tokens.size != 1) return 0;
+
+    uint16_t vector = trim_bits(token_code,8);
+    return (0xF << 12) | vector;
+}
 
 // Main Handle Conversion Function
 int handle_conversion(int token_code,list tokens,uint16_t * return_conversion)
@@ -99,6 +114,17 @@ int handle_conversion(int token_code,list tokens,uint16_t * return_conversion)
             break;
         case OP_BR:
             instr = br(token_code,tokens);
+            break;
+        case OP_TRAP:
+            instr = indirect_traps(token_code,tokens);
+            break;
+        case TRAP_GETC:
+        case TRAP_HALT:
+        case TRAP_IN:
+        case TRAP_OUT:
+        case TRAP_PUTS:
+        case TRAP_PUTSP:
+            instr = direct_traps(token_code,tokens);
             break;
     }
     if(!instr) return 0;
