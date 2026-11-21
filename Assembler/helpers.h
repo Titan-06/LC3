@@ -1,0 +1,62 @@
+#ifndef DEFS_H
+#define DEFS_H
+
+#include <stdint.h>
+
+#define VALID_TOKENS 30 // .ORIG and .END are not counted
+
+// ENUMS
+enum OPCODES{ // 15 OPCODES in LC 3 and One reserved code
+    OP_BR = 0,
+    OP_ADD,
+    OP_LD,
+    OP_ST,
+    OP_JSR,
+    OP_AND,
+    OP_LDR,
+    OP_STR,
+    OP_RTI,
+    OP_NOT,
+    OP_LDI,
+    OP_STI,
+    OP_RET,
+    OP_RESERVED,
+    OP_LEA,
+    OP_TRAP
+};
+enum TRAPS{
+    TRAP_GETC = 0x20,
+    TRAP_OUT,
+    TRAP_PUTS,
+    TRAP_IN,
+    TRAP_PUTSP,
+    TRAP_HALT
+};
+enum assembler_directive{
+    BLKW = 1000,
+    FILL,
+    STRINGZ
+};
+
+// Dyanmic Lists
+typedef struct list{
+    char ** elements;
+    unsigned int size;
+}list;
+struct buffer{
+    uint16_t * elements;
+    unsigned int size;
+};
+
+// Helper Function Prototypes 
+int add_list_element(char * element, list * input_list);
+void clear_list(list * input_list);
+
+int add_buffr_instr(uint16_t instr, struct buffer * buffr_addr);
+void clear_buffer(struct buffer * buffr_addr);
+
+int valid_token(char * token);
+int hexToDec(char * hex);
+int is_directive(char * token, char * param);
+
+#endif
