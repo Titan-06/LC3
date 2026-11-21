@@ -83,6 +83,23 @@ void write_binary(char *filename,short_int_list buffer)
 
 }
 
+// Stripping comments
+void strip_comment(char *line)
+{
+    int quote_flag = -1; // -1 is off and 1 is on 
+    while(*line != '\0')
+    {
+        if(*line == ';' && quote_flag == -1){ // If not inside quotes and ; is encountered
+            *line = '\0';
+            return;
+        }
+        
+        if(*line == '"' && *(line-1) != '\\') quote_flag *= -1;
+
+        line++;
+    }
+}
+
 /* Functions related to the First/Second Pass */
 
 // For First Pass, All The labels are loaded in The Symbol Table with their associated address
@@ -95,19 +112,18 @@ int first_pass(char * filename)
         return 0;
     }
 
-    char line[64];
+    char line[256];
     list label_list = {0}; // Keeps storing all labels until a valid token appears
     unsigned int PC;
 
-    while(fgets(line,64,fptr) != NULL){
+    while(fgets(line,256,fptr) != NULL){
         // For an empty line
         if(strcmp(line,"\n") == 0)
         {
             continue;
         }
         //Sanitising comments
-        char *cmmnt_ptr = strchr(line,';');
-        if(cmmnt_ptr) *cmmnt_ptr = '\0';
+        strip_comment(line);
 
         // Go Over Every Token 
         char *token = strtok(line," \n");
@@ -132,6 +148,7 @@ int first_pass(char * filename)
                     if(token_no > 999)
                     {
                         char * param = strtok(NULL,"\n");
+                        trim_spaces(param);
                         int increm = is_directive(token,param); // It returns how much to incremenet the PC based on the directive and parameter
                         if(increm == 0) return 0;
                         PC += increm;
@@ -172,8 +189,7 @@ int second_pass(char * filename)
             continue;
         }
         //Sanitising comments
-        char *cmmnt_ptr = strchr(line,';');
-        if(cmmnt_ptr) *cmmnt_ptr = '\0';
+        strip_comment(line);
         
         // Go Over Every Token 
         char *token = strtok(line," \n");
@@ -229,12 +245,15 @@ int second_pass(char * filename)
                     if(symbol != -1)
                     {
                         char pc_loc[10]; // Since max value for a 16 bit is 65,535
-                        snprintf(pc_loc,sizeof(pc_loc),"#%d",SYMBOL_TABLE.entries[symbol].PC_LOC - PC); // Label is ccounted realtive to incremneted PC
+                        int relative_value = SYMBOL_TABLE.entries[symbol].PC_LOC - PC;
+                        if(token_no > 999) relative_value += PC ;
+                        snprintf(pc_loc,sizeof(pc_loc),"#%d",relative_value); // Label is ccounted realtive to incremneted PC
                         add_list_element(pc_loc,&instr_tokens);
                     }else{
                         add_list_element(token,&instr_tokens);
                     }
-                    if(token_no > 999){
+
+                    if(token_no == 1002){
                         token = strtok(NULL,"\n"); // Just get the one after the directive
                     }else{
                         token = strtok(NULL," ,\n"); // make sure to get the comma ones

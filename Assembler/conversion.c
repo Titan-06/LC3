@@ -225,17 +225,30 @@ int handle_directive(int token_code,list tokens,short_int_list * to_fill){
     switch (token_code)
     {
     case STRINGZ:
-        int i;
-        for(i = 0;tokens.elements[1][i] != '\0'; i++); // is the whole length of the token with null terminator
-        if(i < 3) return 0;
-        if(tokens.elements[1][0] == '"' && tokens.elements[1][i-1] == '"')
+        trim_spaces(tokens.elements[1]);
+        int i = decode_string(tokens.elements[1],NULL); // Doesnt count null Terminator
+        i++; // Account for null terminator;
+
+        uint16_t * decoded_string = malloc(i * sizeof(uint16_t));
+        decode_string(tokens.elements[1],decoded_string);
+        decoded_string[i-1] = '\0';
+
+        if(i < 3){
+            free(decoded_string);
+            return 0;
+        }
+        if(decoded_string[0] == '"' && decoded_string[i-2] == '"')
         {
-            for(int j = 1;j < (i-1); j++)
+            for(int j = 1;j < (i-2); j++)
             {
-                add_short_int_list(tokens.elements[1][j],to_fill);
+                add_short_int_list(decoded_string[j],to_fill);
             }
             add_short_int_list(0,to_fill);
-            return i - 1; // Also include the null term so +1
+            free(decoded_string);
+            return i - 2; // Also include the null term so +1
+        }else{
+            free(decoded_string);
+            return 0;
         }
     case BLKW:
         int empty_addr = is_num(tokens.elements[1]);
@@ -247,7 +260,6 @@ int handle_directive(int token_code,list tokens,short_int_list * to_fill){
     case FILL:
         int num = is_num(tokens.elements[1]);
         if(num == -1) return 0;
-        
         add_short_int_list(num,to_fill);
         return 1;
     default:

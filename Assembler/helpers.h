@@ -57,5 +57,7 @@ void clear_short_int_list(short_int_list * list_addr);
 
 int valid_token(char * token);
 int is_directive(char * token, char * param);
+void trim_spaces(char *string);
+int decode_string(char * string, uint16_t *out);
 
 #endif

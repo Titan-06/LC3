@@ -85,7 +85,53 @@ int is_directive(char * token, char * param)
         int allot = atoi(param);
         return allot;
     }else if(strcmp(token,".STRINGZ")==0){
-        return strlen(param) - 2 + 1; // -3 to remove the "" and \n, +1 for null terminator
+        return decode_string(param,NULL) - 2 + 1; // -3 to remove the "", +1 for null terminator
     }
     return 0;
+}
+
+void trim_spaces(char *string)
+{
+    if(string == NULL || *string == '\0') return;
+
+    int start = 0;
+    int end = 0;
+
+    // Go over until you encounter a character
+    for(start = 0; string[start] == ' ' ; start++);
+    if(string[start] == '\0') return;
+
+    for(int i = 0; string[i] != '\0'; i++)
+    {
+        if(string[i] != ' ') end = i;
+    }
+    string[end+1] = '\0';
+    memmove(string,&string[start],end - start + 2);
+}
+
+int decode_string(char * string, uint16_t *out)
+{
+    int count =  0;
+    for(int i = 0 ; string[i] != '\0'; i++)
+    {
+        uint16_t c = string[i];
+        if(c == '\\')
+        {
+            i++;
+            switch(string[i])
+            {
+                case 'n':  c = 0x0A; break;
+                case 't':  c = 0x09; break;
+                case 'r':  c = 0x0D; break;
+                case 'e':  c = 0x1B; break;
+                case '0':  c = 0x00; break;
+                case '\\': c = '\\'; break;
+                case '"':  c = '"';  break;
+                default: i--; break;
+            }
+        }
+        if(out) out[count] = c;
+        count++;
+    }
+    return count;
 }
