@@ -65,13 +65,14 @@ void add_instr_buffer(uint16_t instr, short_int_list * buffer)
 }
 void write_binary(char *filename,short_int_list buffer)
 {
-    char *name = strtok(filename,".");
-    if(strlen(name) > 46){
+    char *extension = strrchr(filename,'.');
+    *extension = '\0';
+    if(strlen(filename) > 46){
         printf("File Name too big. (Make sure its Under 46 chars)\n");
         return;
     }
     char objfile[50];
-    snprintf(objfile,sizeof(objfile),"%s%s",name,".obj");
+    snprintf(objfile,sizeof(objfile),"%s%s",filename,".obj");
     FILE * objptr = fopen(objfile,"wb");
     if(!objptr){
         printf("Something went wrong. Couldn't open file.\n");
