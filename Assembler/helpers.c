@@ -99,12 +99,12 @@ void trim_spaces(char *string)
     int end = 0;
 
     // Go over until you encounter a character
-    for(start = 0; string[start] == ' ' ; start++);
+    for(start = 0; string[start] == ' ' || string[start] == '\t' || string[start] == '\r' ; start++);
     if(string[start] == '\0') return;
 
     for(int i = 0; string[i] != '\0'; i++)
     {
-        if(string[i] != ' ') end = i;
+        if(string[start] != ' ' && string[start] != '\t' && string[start] != '\r') end = i;
     }
     string[end+1] = '\0';
     memmove(string,&string[start],end - start + 2);

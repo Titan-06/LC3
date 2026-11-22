@@ -127,7 +127,7 @@ int first_pass(char * filename)
         strip_comment(line);
 
         // Go Over Every Token 
-        char *token = strtok(line," \n");
+        char *token = strtok(line,DELIMS);
 
         // This loops run until a valid token appears, then it stores all the labels that it encountered with the PC (Already incremented)
         // Increments the PC according to the type of token (Directive or instruiction)
@@ -135,7 +135,7 @@ int first_pass(char * filename)
             // When ORIG is encountered set the PC
             if(strcmp(token,".ORIG") == 0)
             {
-                char * PC_start = strtok(NULL," \n"); // Get the next Token
+                char * PC_start = strtok(NULL,DELIMS); // Get the next Token
                 PC = is_num(PC_start);
                 if(PC == -1)
                 {
@@ -214,7 +214,7 @@ int second_pass(char * filename)
         strip_comment(line);
         
         // Go Over Every Token 
-        char *token = strtok(line," \n");
+        char *token = strtok(line,DELIMS);
         
         
         // This loops run until a valid token appears, then it stores all the labels that it encountered with the PC (Already incremented)
@@ -236,7 +236,7 @@ int second_pass(char * filename)
 
                     return 0;
                 }
-                char * PC_start = strtok(NULL," \n"); // Get the next Token
+                char * PC_start = strtok(NULL,DELIMS); // Get the next Token
                 PC = is_num(PC_start);
                 if(PC == -1) return 0;
                 add_instr_buffer(PC,&buffer);
@@ -258,7 +258,7 @@ int second_pass(char * filename)
                 
                 int token_no = valid_token(token);
                 if(token_no == -1){ // Skip all the Labels
-                    token = strtok(NULL," \n");
+                    token = strtok(NULL,DELIMS);
                     continue;
                 }
 
@@ -288,7 +288,7 @@ int second_pass(char * filename)
                     if(token_no == 1002){
                         token = strtok(NULL,"\n"); // Just get the one after the directive
                     }else{
-                        token = strtok(NULL," ,\n"); // make sure to get the comma ones
+                        token = strtok(NULL,OPERAND_DELIMS); // make sure to get the comma ones
                     }
                     
                 }while(token != NULL);

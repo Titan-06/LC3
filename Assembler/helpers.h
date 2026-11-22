@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define VALID_TOKENS 33 // .ORIG and .END are not counted
+#define DELIMS " \t\r\n"
+#define OPERAND_DELIMS " \t,\r\n"
 
 // ENUMS
 enum OPCODES{ // 15 OPCODES in LC 3 and One reserved code
