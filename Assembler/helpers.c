@@ -104,7 +104,7 @@ void trim_spaces(char *string)
 
     for(int i = 0; string[i] != '\0'; i++)
     {
-        if(string[start] != ' ' && string[start] != '\t' && string[start] != '\r') end = i;
+        if(string[i] != ' ' && string[i] != '\t' && string[i] != '\r') end = i;
     }
     string[end+1] = '\0';
     memmove(string,&string[start],end - start + 2);

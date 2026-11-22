@@ -180,7 +180,7 @@ int first_pass(char * filename)
                     add_list_element(token,&label_list);
                 }
             }
-            token = strtok(NULL," \n");
+            token = strtok(NULL,DELIMS);
         }
     }
 
