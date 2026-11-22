@@ -10,7 +10,7 @@ An assembler and a virtual machine for the LC-3 (Little Computer 3), an educatio
 
 ### Virtual Machine
 - Emulates the LC-3: 16-bit words, 8 general-purpose registers, a program counter and condition flags.
-- Implements the full LC-3 instruction set and the standard trap routines (keyboard and console I/O, halt).
+- Implements the full LC-3 instruction set (except RTI) and the standard trap routines (keyboard and console I/O, halt).
 - Trap routines are handled via built in C functions.
 
 For build and usage instructions, look inside the `Assembler/` and `VM/` folders.
@@ -20,7 +20,7 @@ For build and usage instructions, look inside the `Assembler/` and `VM/` folders
 | | |
 |---|---|
 | OS | Fedora Linux 44 (x86_64) |
-| Compiler | GCC 16.2.1 |
+| Compiler | GCC 16.2.1 (GNU mode)|
 | Language standard | C23 |
 
 I have only built and tested this on Linux. Other platforms or older compilers may need changes.
