@@ -7,7 +7,7 @@ A virtual machine for the LC-3 (Little Computer 3) architecture, written in C in
 Requires a POSIX system (Linux or macOS) and a C23-capable compiler.
 
 ```bash
-gcc -std=c23 -Wall -o lc3_vm lc3_vm.c
+gcc -Wall -o lc3_vm lc3_vm.c
 ```
 
 ## Usage
