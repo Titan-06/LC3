@@ -37,4 +37,6 @@ I've also added tests for both the assembler and the VM, in the `Tests/` folder.
 
 ## Credits
 
-`2048.asm` in `Tests/` is taken from [rpendleton/lc3-2048](https://github.com/rpendleton/lc3-2048). All credit for it goes to the original author.
+## Credits
+
+`Tests/2048.asm` is an implementation of 2048 for the LC-3 by [Ryan Pendleton](https://github.com/rpendleton), taken from [rpendleton/lc3-2048](https://github.com/rpendleton/lc3-2048) and released under the MIT License. I did not write it; I use it as a large real-world test program for the assembler and VM. The original header, including the author and license notice, is kept at the top of the file. All credit for it goes to the original author.
