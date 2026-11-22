@@ -136,7 +136,13 @@ int first_pass(char * filename)
             {
                 char * PC_start = strtok(NULL," \n"); // Get the next Token
                 PC = is_num(PC_start);
-                if(PC == -1) return 0;
+                if(PC == -1)
+                {
+                    if(label_list.size != 0) clear_list(&label_list);
+                    fclose(fptr);
+                    printf("ERROR: Invalid .ORIG address\n");
+                    return 0;
+                }
                 break;
             }else {
                 int token_no = valid_token(token);
@@ -150,19 +156,34 @@ int first_pass(char * filename)
                         char * param = strtok(NULL,"\n");
                         trim_spaces(param);
                         int increm = is_directive(token,param); // It returns how much to incremenet the PC based on the directive and parameter
-                        if(increm == 0) return 0;
+                        if(increm == 0)
+                        {
+                            if(label_list.size != 0) clear_list(&label_list);
+                            fclose(fptr);
+                            printf("ERROR: Invalid Directive Parameter\n");
+                            return 0;
+                        }
                         PC += increm;
                     }else{
                         PC += 1;
                     }
                     break;
                 }else{
+                    if(is_symbol(token) != -1)
+                    {
+                        clear_list(&label_list);
+                        fclose(fptr);
+                        printf("ERROR: Duplicate Labels are not allowed.\n");
+                        return 0;
+                    }
                     add_list_element(token,&label_list);
                 }
             }
             token = strtok(NULL," \n");
         }
     }
+
+    if(label_list.size != 0) clear_list(&label_list);
     fclose(fptr);
     return 1;
 }
@@ -207,6 +228,11 @@ int second_pass(char * filename)
             {
                 if(orig_set){
                     printf("ERROR: Line %d, .ORIG repeated twice\n",line_no);
+                    // Free Memory
+                    if(buffer.size != 0) clear_short_int_list(&buffer);
+                    if(instr_tokens.size != 0) clear_list(&instr_tokens);
+                    fclose(file_to_read);
+
                     return 0;
                 }
                 char * PC_start = strtok(NULL," \n"); // Get the next Token
@@ -220,6 +246,11 @@ int second_pass(char * filename)
                 if(!orig_set)
                 {
                     printf("ERROR: Instruction or Label before .ORIG\n");
+                    // Free Memory
+                    if(buffer.size != 0) clear_short_int_list(&buffer);
+                    if(instr_tokens.size != 0) clear_list(&instr_tokens);
+                    fclose(file_to_read);
+
                     return 0;
                 }
                 
@@ -230,7 +261,7 @@ int second_pass(char * filename)
                     continue;
                 }
 
-                // Pc incremented accordingly
+                // Pc incremented only if the token is not a assembler directive
                 if(token_no < 999)
                 {
                     PC += 1;
@@ -266,8 +297,11 @@ int second_pass(char * filename)
                     short_int_list to_fill ={0};
                     int increment = handle_directive(token_no,instr_tokens,&to_fill);
                     if(!increment){
-                        clear_list(&instr_tokens);
                         printf("ERROR: Directive is not correct at line %d\n",line_no);
+                        // Free Memory
+                        if(buffer.size != 0) clear_short_int_list(&buffer);
+                        if(instr_tokens.size != 0) clear_list(&instr_tokens);
+                        fclose(file_to_read);
                         return 0;
                     }
                     PC += increment;
@@ -275,11 +309,16 @@ int second_pass(char * filename)
                     {
                         add_instr_buffer(to_fill.elements[j],&buffer);
                     }
+                    clear_short_int_list(&to_fill);
                 }else{
                     if(!handle_conversion(token_no,instr_tokens,&instr))
                     {
-                        clear_list(&instr_tokens);
                         printf("ERROR: Invalid Syntax at line %d\n",line_no);
+                        // Free Memory
+                        if(buffer.size != 0) clear_short_int_list(&buffer);
+                        if(instr_tokens.size != 0) clear_list(&instr_tokens);
+                        fclose(file_to_read);
+
                         return 0;
                     }
                     add_instr_buffer(instr,&buffer);
@@ -329,4 +368,6 @@ int main(int argc, char * argv[])
     }
     
     second_pass(argv[1]);
+
+    free_symbol_table();
 }
