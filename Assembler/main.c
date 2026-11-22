@@ -358,17 +358,17 @@ int main(int argc, char * argv[])
 {
     init_table();
     if(argc != 2){
-        printf("Usage: ./main {PROGRAM NAME}\n");
+        printf("Usage: ./assemble {PROGRAM}\n");
         return 1;
     }
 
     
     if(!first_pass(argv[1])){ // Load the Symbol Table
-        printf("First pass didnt work\n");
-        return 1;
+        printf("ERROR: The labels couldn't be loaded correctly\n");
+    }else{
+        if(!second_pass(argv[1])){
+            printf("ERROR: Couldn't Assemble\n");
+        }
     }
-    
-    second_pass(argv[1]);
-
-    free_symbol_table();
+    if(SYMBOL_TABLE.size != 0) free_symbol_table();
 }
