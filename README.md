@@ -1,6 +1,6 @@
 # LC-3 Assembler and VM
 
-An assembler and a virtual machine for the LC-3 (Little Computer 3), an educational 16-bit architecture. The assembler turns LC-3 assembly into machine code, and the VM runs that machine code.
+An assembler and a virtual machine for the LC-3 (Little Computer 3), an educational 16-bit architecture. The assembler turns LC-3 assembly into machine code, and the VM runs that machine code. They do have some limitations so make sure to go over the READMEs properly before using them :)
 
 ## What's inside
 
@@ -34,8 +34,6 @@ I've also added tests for both the assembler and the VM, in the `Tests/` folder.
 - [Write your own Virtual Machine](https://www.jmeiners.com/lc3-vm/) (a reference whenever I got stuck)
 - [Assembly lecture notes, CS 2461](https://cs2461-2020.github.io/lectures/assembly1.pdf) (the assembler reference)
 - [LC-3 ISA specification](https://www.jmeiners.com/lc3-vm/supplies/lc3-isa.pdf) (the VM's instruction set reference)
-
-## Credits
 
 ## Credits
 
