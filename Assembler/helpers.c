@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 // All the Opcodes/instructions decalration
 char * valid_tokens[VALID_TOKENS] = {"ADD","AND","JMP","JSR","JSRR","LD"
@@ -134,4 +135,10 @@ int decode_string(char * string, uint16_t *out)
         count++;
     }
     return count;
+}
+
+int is_in_range(int16_t num , int bit)
+{
+    if(num >= pow(2,bit-1) || num < (-1*pow(2,bit-1))) return 0;
+    return 1;
 }

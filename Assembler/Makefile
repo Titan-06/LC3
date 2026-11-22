@@ -6,7 +6,7 @@ TARGET = assemble
 SOURCES = main.c helpers.c conversion.c
 
 $(TARGET): $(SOURCES)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) -lm
 
 clean:
 	rm -rf $(TARGET)

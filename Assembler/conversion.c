@@ -50,7 +50,7 @@ uint16_t add_and(int token_code, list tokens)
     int r3 = is_regsiter(tokens.elements[3]);
     if(r3 == -1){
         r3 = is_num(tokens.elements[3]);
-        if(r3 == -1) return 0;
+        if(r3 == -1 || !is_in_range(r3,5)) return 0;
         r3 = trim_bits(r3,5) | (1 << 5);
     }
     uint16_t instr = (token_code << 12) | (r1 << 9) | (r2 << 6) | r3;
@@ -80,7 +80,7 @@ uint16_t br(int token_code, list tokens)
     }
 
     int pcoffset = is_num(tokens.elements[1]);
-    if(pcoffset == -1) return 0;
+    if(pcoffset == -1 || !is_in_range(pcoffset,9)) return 0;
     pcoffset = trim_bits(pcoffset,9);
 
     uint16_t instr = (condition_flag << 9) | pcoffset;
@@ -90,7 +90,7 @@ uint16_t indirect_traps(int token_code, list tokens)
 {
     if(tokens.size != 2) return 0;
     int vector = is_num(tokens.elements[1]);
-    if(vector == -1) return 0;
+    if(vector == -1 || !is_in_range(vector,9)) return 0;
 
     return (0xF << 12) | trim_bits(vector,8);
 }
@@ -121,7 +121,7 @@ uint16_t jsr_ret(int token_code, list tokens)
     // JSR
     if(tokens.size != 2) return 0;
     int pcoffset = is_num(tokens.elements[1]);
-    if(pcoffset == -1) return 0;
+    if(pcoffset == -1 || !is_in_range(pcoffset,11)) return 0;
 
     return (token_code << 12) | (1 << 11) | trim_bits(pcoffset,11);
 }
@@ -133,7 +133,7 @@ uint16_t pc_offset9(int token_code, list tokens) // LD, LDI, LEA, ST, STI
     if(r1 == -1) return 0;
 
     int pcoffset = is_num(tokens.elements[2]);
-    if(pcoffset == -1) return 0;
+    if(pcoffset == -1 || !is_in_range(pcoffset,9)) return 0;
 
     return (token_code << 12) | (r1 << 9) | trim_bits(pcoffset,9);
 }

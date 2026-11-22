@@ -67,11 +67,11 @@ void write_binary(char *filename,short_int_list buffer)
 {
     char *extension = strrchr(filename,'.');
     *extension = '\0';
-    if(strlen(filename) > 46){
+    if(strlen(filename) > 60){
         printf("File Name too big. (Make sure its Under 46 chars)\n");
         return;
     }
-    char objfile[50];
+    char objfile[64];
     snprintf(objfile,sizeof(objfile),"%s%s",filename,".obj");
     FILE * objptr = fopen(objfile,"wb");
     if(!objptr){

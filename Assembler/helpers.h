@@ -59,5 +59,6 @@ int valid_token(char * token);
 int is_directive(char * token, char * param);
 void trim_spaces(char *string);
 int decode_string(char * string, uint16_t *out);
+int is_in_range(int16_t num , int bit);
 
 #endif
